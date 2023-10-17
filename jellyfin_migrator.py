@@ -58,7 +58,7 @@ import os
 #   * Go to "Search -> Bookmark -> Remove Bookmarked Lines"
 #   * Repeat as needed
 # Text encoding is UTF-8 (in npp selectable under "Encoding -> UTF-8")
-log_file = "D:/jf-migrator.log"
+log_file = "./jf-migrator.log"
 
 
 # These paths will be processed in the order they're listed here.
@@ -77,23 +77,24 @@ log_file = "D:/jf-migrator.log"
 # changed.
 path_replacements = {
     # Self-explanatory, I guess. "\\" if migrating *to* Windows, "/" else.
-    "target_path_slash": "/",
+    "target_path_slash": "\\",
     # Paths to your libraries
-    "D:/Serien": "/data/tvshows",
-    "F:/Serien": "/data/tvshows",
-    "F:/Filme": "/data/movies",
-    "F:/Musik": "/data/music",
+    "E:/Media Libraries/Anime": "X:/Anime",
+    "E:/Media Libraries/Movies": "X:/Movies",
+    "E:/Media Libraries/Shows": "X:/Shows",
+    "E:/Downloads.old": "X:/Old/Downloads.old",
+    "D:/Downloads": "Y:/Downloads",
     # Paths to the different parts of the jellyfin database. Determine these
     # by comparing your existing installation with the paths in your new
     # installation.
-    "C:/ProgramData/Jellyfin/Server/config": "/config",
-    "C:/ProgramData/Jellyfin/Server/cache": "/config/cache",
-    "C:/ProgramData/Jellyfin/Server/log": "/config/log",
-    "C:/ProgramData/Jellyfin/Server": "/config/data", # everything else: metadata, plugins, ...
-    "C:/ProgramData/Jellyfin/Server/transcodes": "/config/data/transcodes",
-    "C:/Program Files/Jellyfin/Server/ffmpeg.exe": "usr/lib/jellyfin-ffmpeg/ffmpeg",
-    "%MetadataPath%": "%MetadataPath%",
-    "%AppDataPath%": "%AppDataPath%",
+    # "C:/ProgramData/Jellyfin/Server/config": "/config",
+    # "C:/ProgramData/Jellyfin/Server/cache": "/config/cache",
+    # "C:/ProgramData/Jellyfin/Server/log": "/config/log",
+    # "C:/ProgramData/Jellyfin/Server": "/config/data", # everything else: metadata, plugins, ...
+    # "C:/ProgramData/Jellyfin/Server/transcodes": "/config/data/transcodes",
+    # "C:/Program Files/Jellyfin/Server/ffmpeg.exe": "usr/lib/jellyfin-ffmpeg/ffmpeg",
+    # "%MetadataPath%": "%MetadataPath%",
+    # "%AppDataPath%": "%AppDataPath%",
 }
 
 
@@ -119,13 +120,15 @@ path_replacements = {
 #   * %MetadataPath%.
 fs_path_replacements = {
     "log_no_warnings": False,
-    "target_path_slash": "/",
-    "/config": "/",
-    "%AppDataPath%": "/data/data",
-    "%MetadataPath%": "/data/metadata",
-    "/data/tvshows": "Y:/Serien",
-    "/data/movies": "Y:/Filme",
-    "/data/music": "Y:/Musik",
+    "target_path_slash": "\\",
+    "%AppDataPath%": "E:/JellyfinSvrData/data",
+    "%MetadataPath%": "E:/JellyfinSvrData/metadata",
+    # Paths to your libraries
+    "X:/Anime": "E:/Media Libraries/Anime",
+    "X:/Movies": "E:/Media Libraries/Movies",
+    "X:/Shows": "E:/Media Libraries/Shows",
+    "X:/Old/Downloads.old": "E:/Downloads.old",
+    "Y:/Downloads": "D:Downloads",
 }
 
 
@@ -136,9 +139,9 @@ fs_path_replacements = {
 # and then do the replacement according to the path_replacements dict.
 # This is required if you copied your jellyfin DB to another location and then
 # start processing it with this script.
-original_root = Path("C:/ProgramData/Jellyfin/Server")
-source_root = Path("D:/Jellyfin/Server")
-target_root = Path("D:/Jellyfin-dummy")
+original_root = Path("E:/JellyfinSvrData")
+source_root = Path("E:/JellyfinSvrData_bk")
+target_root = Path("E:/JellyfinSvrData_new")
 
 
 ### The To-Do Lists: todo_list_paths, todo_list_id_paths and todo_list_ids.
@@ -522,11 +525,11 @@ def recursive_root_path_replacer(d, to_replace: dict):
                 # accurate, but it eliminates 99.9999% of the false-positives. This output is
                 # after all only to give you a hint whether you missed a path.
                 # Also exclude URLs. Btw: pathlib can be quite handy for messing with URLs.
-                if len(p.parents) > 1 \
-                        and not d.startswith("https:") \
-                        and not d.startswith("http:") \
-                        and not to_replace.get("log_no_warnings", False):
-                    print_log(f"No entry for this (presumed) path: {d}")
+                # if len(p.parents) > 1 \
+                #         and not d.__str__().startswith("https:") \
+                #         and not d.__str__().startswith("http:") \
+                #         and not to_replace.get("log_no_warnings", False):
+                #     print_log(f"No entry for this (presumed) path: {d}")
     return d, modified, ignored
 
 
@@ -1172,6 +1175,7 @@ def jf_date_str_to_python_ns(s: str):
     # Add trailing zeros til the ns digit, then convert to int, and we have ns.
     subseconds = int(subseconds.split("+")[0].rstrip(ascii_letters).ljust(9, "0"))
     # Add explicit information about the timezone (UTC+00:00)
+    s = s.removesuffix('Z')
     s += "+00:00"
     t = int(datetime.datetime.fromisoformat(s).timestamp())
     # Convert to ns
